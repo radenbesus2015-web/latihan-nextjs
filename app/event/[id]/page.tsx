@@ -21,4 +21,3 @@ export default async function Detail({ params }: PageProps<"/event/[id]">) {
     </article>
   );
 }
-
