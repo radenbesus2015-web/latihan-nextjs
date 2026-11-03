@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Event } from "@/data/events";
+import { rupiah } from "@/data/events";
 
 export default function DaftarFavorit() {
   const [semua, setSemua] = useState<Event[]>([]);
@@ -35,9 +36,9 @@ export default function DaftarFavorit() {
           <Link href={`/event/${e.id}`} className="text-blue-600 hover:underline">
             {e.judul}
           </Link>
+          <span className="ml-2 text-slate-500">{rupiah(e.harga)}</span>
         </li>
       ))}
     </ul>
   );
 }
-
