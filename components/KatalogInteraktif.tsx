@@ -6,17 +6,19 @@ import KartuEvent from "./KartuEvent";
 export default function KatalogInteraktif({ events }: { events: Event[] }) {
   const [cari, setCari] = useState("");
   const [kategori, setKategori] = useState("Semua");
+  const [adaTiket, setAdaTiket] = useState(false);
 
   const daftarKategori = ["Semua", ...new Set(events.map((e) => e.kategori))];
   const hasil = events.filter(
     (e) =>
       e.judul.toLowerCase().includes(cari.toLowerCase()) &&
-      (kategori === "Semua" || e.kategori === kategori)
+      (kategori === "Semua" || e.kategori === kategori) &&
+      (!adaTiket || e.kuota > e.terisi)
   );
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           value={cari}
           onChange={(e) => setCari(e.target.value)}
@@ -32,6 +34,15 @@ export default function KatalogInteraktif({ events }: { events: Event[] }) {
             <option key={k}>{k}</option>
           ))}
         </select>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={adaTiket}
+            onChange={(e) => setAdaTiket(e.target.checked)}
+            className="rounded"
+          />
+          Hanya yang masih ada tiket
+        </label>
       </div>
       {hasil.length === 0 ? (
         <p className="text-slate-500">Tidak ada event yang cocok.</p>
@@ -45,4 +56,3 @@ export default function KatalogInteraktif({ events }: { events: Event[] }) {
     </div>
   );
 }
-
