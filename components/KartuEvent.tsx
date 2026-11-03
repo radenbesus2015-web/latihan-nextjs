@@ -8,11 +8,11 @@ export default function KartuEvent({ event }: { event: Event }) {
       <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
         {event.kategori}
       </span>
-      <h3 className="mt-2 text-lg font-semibold">{event.judul}</h3>
+      <h3 className="mt-2 text-lg font-semibold text-slate-800">{event.judul}</h3>
       <p className="text-sm text-slate-500">
         {event.tanggal} · {event.lokasi}
       </p>
-      <p className="mt-2 font-medium">{rupiah(event.harga)}</p>
+      <p className="mt-2 font-medium text-slate-800">{rupiah(event.harga)}</p>
       <p className={sisa === 0 ? "text-sm text-red-600" : "text-sm text-green-700"}>
         {sisa === 0 ? "Tiket habis" : `Sisa ${sisa} tiket`}
       </p>

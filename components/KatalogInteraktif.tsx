@@ -23,12 +23,12 @@ export default function KatalogInteraktif({ events }: { events: Event[] }) {
           value={cari}
           onChange={(e) => setCari(e.target.value)}
           placeholder="Cari event..."
-          className="rounded border bg-white px-3 py-2"
+          className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-800 placeholder-slate-400"
         />
         <select
           value={kategori}
           onChange={(e) => setKategori(e.target.value)}
-          className="rounded border bg-white px-3 py-2"
+          className="rounded border border-slate-300 bg-white px-3 py-2 text-slate-800"
         >
           {daftarKategori.map((k) => (
             <option key={k}>{k}</option>
