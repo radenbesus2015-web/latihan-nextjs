@@ -21,9 +21,7 @@ export default function KatalogInteraktif({ events }: { events: Event[] }) {
     if (urut === "murah") return a.harga - b.harga;
     if (urut === "mahal") return b.harga - a.harga;
     if (urut === "nama") return a.judul.localeCompare(b.judul);
-    return (
-      new Date(a.tanggal).getTime() - new Date(b.tanggal).getTime()
-    );
+    return a.tanggal.localeCompare(b.tanggal);
   });
 
   return (
