@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { events, rupiah } from "@/data/events";
 import FormPesan from "@/components/FormPesan";
@@ -9,6 +10,10 @@ export default async function Detail({ params }: PageProps<"/event/[id]">) {
   if (!event) notFound();
 
   const sisa = event.kuota - event.terisi;
+  const terkait = events.filter(
+    (e) => e.kategori === event.kategori && e.id !== event.id
+  );
+
   return (
     <article className="rounded-xl border bg-white p-6">
       <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
@@ -22,6 +27,26 @@ export default async function Detail({ params }: PageProps<"/event/[id]">) {
       <p className="text-slate-600">Sisa {sisa} dari {event.kuota} tiket</p>
       <TombolFavorit id={event.id} />
       <FormPesan event={event} />
+
+      <section className="mt-8 border-t pt-6">
+        <h2 className="text-xl font-bold text-slate-900">Event terkait</h2>
+        {terkait.length === 0 ? (
+          <p className="mt-2 text-slate-500">Belum ada event terkait.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {terkait.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/event/${e.id}`}
+                  className="text-blue-600 hover:underline"
+                >
+                  {e.judul}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </article>
   );
 }
