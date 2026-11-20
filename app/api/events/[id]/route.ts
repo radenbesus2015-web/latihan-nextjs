@@ -1,11 +1,11 @@
-import { events } from "@/data/events";
+import { ambilEvent } from "@/data/ambil";
 
 export async function GET(
   _req: Request,
   { params }: RouteContext<"/api/events/[id]">
 ) {
   const { id } = await params;
-  const event = events.find((e) => e.id === Number(id));
+  const event = await ambilEvent(Number(id));
 
   if (!event) {
     return Response.json({ pesan: "Event tidak ditemukan" }, { status: 404 });
@@ -13,4 +13,3 @@ export async function GET(
 
   return Response.json(event);
 }
-

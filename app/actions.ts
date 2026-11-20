@@ -1,8 +1,8 @@
 "use server";
-import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { events } from "@/data/events";
-import { tambahPesanan, pesanan } from "@/data/pesanan";
+import { revalidatePath } from "next/cache";
+import { ambilEvent } from "@/data/ambil";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export type HasilPesan = {
   berhasil: boolean;
@@ -18,12 +18,8 @@ export async function pesanTiket(_sebelum: HasilPesan, formData: FormData): Prom
   const jumlah = Number(formData.get("jumlah"));
   const isian = { nama, email };
 
-  console.log("Pesanan masuk:", nama, jumlah);
-
-  // pura-pura server sedang sibuk, supaya tombol "Memproses..." terlihat
-  await new Promise((r) => setTimeout(r, 800));
-
-  const event = events.find((e) => e.id === eventId);
+  // jangan percaya browser: baca event dari database, bukan dari formulir
+  const event = await ambilEvent(eventId);
   if (!event) {
     return { berhasil: false, pesan: "Event tidak ditemukan.", galat: {}, isian };
   }
@@ -41,27 +37,43 @@ export async function pesanTiket(_sebelum: HasilPesan, formData: FormData): Prom
     return { berhasil: false, pesan: "Periksa lagi isian yang merah.", galat, isian };
   }
 
-  event.terisi += jumlah;
-  const nomor = tambahPesanan({
-    eventId,
-    judul: event.judul,
-    nama,
-    email,
-    jumlah,
-    total: event.harga * jumlah,
-    waktu: new Date().toLocaleString("id-ID"),
-  });
+  // Tantangan 1: perkecil celah race condition dengan .eq("terisi", event.terisi)
+  const { data: updateEvent, error: galatKuota } = await supabaseAdmin
+    .from("events")
+    .update({ terisi: event.terisi + jumlah })
+    .eq("id", eventId)
+    .eq("terisi", event.terisi)
+    .select();
+
+  if (galatKuota || !updateEvent || updateEvent.length === 0) {
+    return { berhasil: false, pesan: "Tiket baru saja berubah, coba lagi.", galat: {}, isian };
+  }
+
+  const { data: baru, error } = await supabaseAdmin
+    .from("pesanan")
+    .insert({ event_id: eventId, nama, email, jumlah, total: event.harga * jumlah })
+    .select("nomor")
+    .single();
+
+  if (error) {
+    // kembalikan kuota jika pesanan gagal disimpan
+    await supabaseAdmin
+      .from("events")
+      .update({ terisi: event.terisi })
+      .eq("id", eventId);
+    return { berhasil: false, pesan: "Pesanan gagal disimpan. Coba lagi.", galat: {}, isian };
+  }
+
+  const toples = await cookies();
+  toples.set("nama", nama, { maxAge: 60 * 60 * 24 * 30 });
 
   revalidatePath("/event");
   revalidatePath(`/event/${eventId}`);
   revalidatePath("/pesanan");
 
-  const toples = await cookies();
-  toples.set("nama", nama, { maxAge: 60 * 60 * 24 * 30 });
-
   return {
     berhasil: true,
-    pesan: `Pesanan #${nomor} tersimpan: ${jumlah} tiket untuk ${nama}.`,
+    pesan: `Pesanan #${baru.nomor} tersimpan: ${jumlah} tiket untuk ${nama}.`,
     galat: {},
     isian: { nama, email: "" },
   };
@@ -70,16 +82,27 @@ export async function pesanTiket(_sebelum: HasilPesan, formData: FormData): Prom
 export async function batalkanPesanan(formData: FormData) {
   const nomor = Number(formData.get("nomor"));
   const namaSaya = (await cookies()).get("nama")?.value;
-  const i = pesanan.findIndex((p) => p.nomor === nomor);
-  // jangan percaya browser: periksa lagi di server bahwa ini pesanan miliknya
-  if (i === -1 || pesanan[i].nama !== namaSaya) return;
+  if (!Number.isInteger(nomor) || !namaSaya) return;
 
-  const [batal] = pesanan.splice(i, 1);
-  const event = events.find((e) => e.id === batal.eventId);
-  if (event) event.terisi -= batal.jumlah;
+  // syarat kepemilikan ikut dalam perintah hapus: pesanan orang lain tidak akan terhapus
+  const { data: batal } = await supabaseAdmin
+    .from("pesanan")
+    .delete()
+    .eq("nomor", nomor)
+    .eq("nama", namaSaya)
+    .select()
+    .maybeSingle();
+  if (!batal) return;
+
+  const event = await ambilEvent(batal.event_id);
+  if (event) {
+    await supabaseAdmin
+      .from("events")
+      .update({ terisi: Math.max(0, event.terisi - batal.jumlah) })
+      .eq("id", batal.event_id);
+  }
 
   revalidatePath("/event");
-  revalidatePath(`/event/${batal.eventId}`);
+  revalidatePath(`/event/${batal.event_id}`);
   revalidatePath("/pesanan");
 }
-
